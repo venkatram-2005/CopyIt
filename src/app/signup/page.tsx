@@ -42,14 +42,23 @@ export default function SignUpPage() {
     } catch (e) {
       const err = e as AuthError;
       let friendlyMessage = "An error occurred. Please try again.";
-      if (err.code === 'auth/email-already-in-use') {
-        friendlyMessage = 'This email is already in use. Please sign in.';
-      } else if (err.code === 'auth/weak-password') {
-        friendlyMessage = 'The password is too weak. Please use at least 6 characters.';
-      } else if (err.code === 'auth/invalid-email') {
-        friendlyMessage = 'Please enter a valid email address.';
-      } else if (err.code === 'auth/operation-not-allowed') {
-        friendlyMessage = 'Sign up is currently disabled. Please check your Firebase console settings.';
+
+      switch (err.code) {
+        case 'auth/email-already-in-use':
+          friendlyMessage = 'This email is already in use. Please sign in.';
+          break;
+        case 'auth/weak-password':
+          friendlyMessage = 'The password is too weak. Please use at least 6 characters.';
+          break;
+        case 'auth/invalid-email':
+          friendlyMessage = 'Please enter a valid email address.';
+          break;
+        case 'auth/operation-not-allowed':
+          friendlyMessage = 'Sign up is currently disabled. Please check your Firebase console settings.';
+          break;
+        default:
+          friendlyMessage = `An unexpected error occurred. (Code: ${err.code})`;
+          break;
       }
 
       toast({
