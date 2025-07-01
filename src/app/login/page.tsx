@@ -38,7 +38,8 @@ export default function LoginPage() {
     } catch (e) {
       const err = e as AuthError;
       let friendlyMessage = "An error occurred. Please try again.";
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      // Use the modern 'invalid-credential' code which covers wrong password, user not found, etc.
+      if (err.code === 'auth/invalid-credential') {
         friendlyMessage = 'Invalid email or password.';
       }
 

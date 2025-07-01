@@ -48,6 +48,8 @@ export default function SignUpPage() {
         friendlyMessage = 'The password is too weak. Please use at least 6 characters.';
       } else if (err.code === 'auth/invalid-email') {
         friendlyMessage = 'Please enter a valid email address.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        friendlyMessage = 'Sign up is currently disabled. Please check your Firebase console settings.';
       }
 
       toast({
