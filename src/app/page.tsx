@@ -11,7 +11,7 @@ import { EntryCard } from '@/components/entry-card';
 import { EntryForm } from '@/components/entry-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Loader2, AlertTriangle, ClipboardList } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Entry } from '@/types';
@@ -92,6 +92,8 @@ export default function HomePage() {
         id: doc.id,
         ...doc.data(),
       })) as Entry[];
+      // Sort client-side to avoid needing a composite index immediately.
+      entriesData.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
       setEntries(entriesData);
       setIsLoading(false);
     }, (error) => {
@@ -186,7 +188,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen w-full flex-col">
       <Header user={user} />
-      <main className="flex flex-1 flex-col gap-4 p-4 md:p-8 container">
+      <main className="flex flex-1 flex-col gap-6 p-4 md:p-8 lg:p-10 container">
         {isMockMode && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />
@@ -196,23 +198,26 @@ export default function HomePage() {
             </AlertDescription>
           </Alert>
         )}
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Search by title..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Button onClick={() => { setEditingEntry(null); setIsDialogOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> Add New
-          </Button>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <h1 className="text-3xl font-bold tracking-tight text-primary">Your Clipboard</h1>
+            <div className="flex w-full sm:w-auto items-center gap-2">
+                <div className="relative flex-1 sm:flex-initial sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                    placeholder="Search by title..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <Button onClick={() => { setEditingEntry(null); setIsDialogOpen(true); }}>
+                    <Plus className="mr-2 h-4 w-4" /> Add New
+                </Button>
+            </div>
         </div>
 
         {filteredEntries.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in-50">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in-50">
             {filteredEntries.map(entry => (
               <EntryCard
                 key={entry.id}
@@ -223,8 +228,9 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm mt-8">
-            <div className="flex flex-col items-center gap-1 text-center">
+          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm mt-8 py-24">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <ClipboardList className="h-12 w-12 text-muted-foreground"/>
               <h3 className="text-2xl font-bold tracking-tight">No entries found</h3>
               <p className="text-sm text-muted-foreground">
                 {searchTerm ? `No results for "${searchTerm}".` : 'Click "Add New" to create your first entry.'}
