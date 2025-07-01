@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, onSnapshot, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Header } from '@/components/header';
 import { EntryCard } from '@/components/entry-card';
@@ -86,7 +86,7 @@ export default function HomePage() {
     }
     
     setIsLoading(true);
-    const q = query(collection(db, 'entries'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'entries'), where('userId', '==', user.uid));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const entriesData = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -96,7 +96,7 @@ export default function HomePage() {
       setIsLoading(false);
     }, (error) => {
       console.error("Error fetching entries: ", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch entries." });
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch entries. You may need to create a Firestore index." });
       setIsLoading(false);
     });
     return () => unsubscribe();
