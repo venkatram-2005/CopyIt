@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Copyright } from 'lucide-react';
+import { Copyright, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -90,7 +90,12 @@ export default function LoginPage() {
                 />
               </div>
               <Button onClick={handleSignIn} className="w-full mt-2" disabled={isLoading}>
-                {isLoading ? 'Signing In...' : 'Sign In'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing In...
+                  </>
+                ) : 'Sign In'}
               </Button>
             </div>
           ) : (
