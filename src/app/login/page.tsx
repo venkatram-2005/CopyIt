@@ -37,10 +37,27 @@ export default function LoginPage() {
       router.push('/');
     } catch (e) {
       const err = e as AuthError;
-      let friendlyMessage = "An error occurred. Please try again.";
-      // Use the modern 'invalid-credential' code which covers wrong password, user not found, etc.
-      if (err.code === 'auth/invalid-credential') {
-        friendlyMessage = 'Invalid email or password.';
+      let friendlyMessage = "An unexpected error occurred. Please try again.";
+      
+      switch (err.code) {
+        case 'auth/invalid-credential':
+          friendlyMessage = 'Invalid email or password.';
+          break;
+        case 'auth/user-disabled':
+          friendlyMessage = 'This user account has been disabled.';
+          break;
+        case 'auth/user-not-found':
+          friendlyMessage = 'No account found with this email.';
+          break;
+        case 'auth/wrong-password':
+          friendlyMessage = 'Incorrect password. Please try again.';
+          break;
+        case 'auth/invalid-email':
+          friendlyMessage = 'Please enter a valid email address.';
+          break;
+        default:
+          friendlyMessage = `An unexpected error occurred: ${err.code}`;
+          break;
       }
 
       toast({
