@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -10,16 +11,42 @@ import { EntryCard } from '@/components/entry-card';
 import { EntryForm } from '@/components/entry-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Loader2 } from 'lucide-react';
+import { Plus, Search, Loader2, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Entry } from '@/types';
 import { z } from 'zod';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required."),
   content: z.string().min(1, "Content is required."),
 });
+
+const mockEntries: Entry[] = [
+    {
+      id: '1',
+      title: 'Welcome to CopyIt!',
+      content: 'This is a demo of your personal clipboard manager. Since Firebase is not configured, this is mock data and your changes will not be saved.',
+      userId: 'mock-user',
+      createdAt: { toDate: () => new Date(Date.now() - 1000 * 60 * 5) } as any,
+    },
+    {
+      id: '2',
+      title: 'How to use',
+      content: 'Click "Add New" to create a new entry. You can edit, delete, and copy existing entries.',
+      userId: 'mock-user',
+      createdAt: { toDate: () => new Date(Date.now() - 1000 * 60 * 2) } as any,
+    },
+    {
+      id: '3',
+      title: 'Example JavaScript Snippet',
+      content: 'const greeting = "Hello, world!";\nconsole.log(greeting);',
+      userId: 'mock-user',
+      createdAt: { toDate: () => new Date() } as any,
+    },
+];
+
 
 export default function HomePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -32,12 +59,16 @@ export default function HomePage() {
   const router = useRouter();
   const { toast } = useToast();
   const isFirebaseConfigured = !!auth && !!db;
+  const isMockMode = !isFirebaseConfigured;
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
+    if (isMockMode) {
+      setUser({ uid: 'mock-user', email: 'demo@example.com' } as User);
+      setEntries(mockEntries);
       setIsLoading(false);
       return;
     }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
@@ -46,32 +77,52 @@ export default function HomePage() {
       }
     });
     return () => unsubscribe();
-  }, [isFirebaseConfigured, router]);
+  }, [isMockMode, router]);
 
   useEffect(() => {
-    if (user && isFirebaseConfigured) {
-      setIsLoading(true);
-      const q = query(collection(db, 'entries'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const entriesData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Entry[];
-        setEntries(entriesData);
+    if (isMockMode || !user) {
         setIsLoading(false);
-      }, (error) => {
-        console.error("Error fetching entries: ", error);
-        toast({ variant: "destructive", title: "Error", description: "Could not fetch entries." });
-        setIsLoading(false);
-      });
-      return () => unsubscribe();
-    } else {
-        setIsLoading(false);
+        return;
     }
-  }, [user, isFirebaseConfigured, toast]);
+    
+    setIsLoading(true);
+    const q = query(collection(db, 'entries'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const entriesData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Entry[];
+      setEntries(entriesData);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching entries: ", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch entries." });
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [user, isMockMode, toast]);
 
   const handleFormSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user || !isFirebaseConfigured) return;
+     if (isMockMode) {
+      if (editingEntry) {
+        setEntries(prev => prev.map(e => e.id === editingEntry.id ? {...e, ...values, createdAt: { toDate: () => new Date() } as any} : e));
+        toast({ title: "Success (Demo)", description: "Entry updated in demo mode." });
+      } else {
+        const newEntry: Entry = {
+          id: (Math.random() * 10000).toString(),
+          ...values,
+          userId: 'mock-user',
+          createdAt: { toDate: () => new Date() } as any
+        };
+        setEntries(prev => [newEntry, ...prev]);
+        toast({ title: "Success (Demo)", description: "Entry added in demo mode." });
+      }
+      setIsDialogOpen(false);
+      setEditingEntry(null);
+      return;
+    }
+
+    if (!user) return;
 
     try {
       if (editingEntry) {
@@ -103,7 +154,12 @@ export default function HomePage() {
   };
 
   const handleDelete = async (entryId: string) => {
-    if (!isFirebaseConfigured) return;
+    if (isMockMode) {
+      setEntries(prev => prev.filter(e => e.id !== entryId));
+      toast({ title: "Success (Demo)", description: "Entry deleted in demo mode." });
+      return;
+    }
+
     try {
       await deleteDoc(doc(db, 'entries', entryId));
       toast({ title: "Success", description: "Entry deleted successfully." });
@@ -119,21 +175,7 @@ export default function HomePage() {
     );
   }, [entries, searchTerm]);
 
-  if (!isFirebaseConfigured) {
-    return (
-       <div className="flex min-h-screen w-full flex-col">
-        <Header user={null} />
-        <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">
-            <h3 className="text-2xl font-bold tracking-tight">Firebase Not Configured</h3>
-            <p className="text-sm text-muted-foreground mt-2">
-              Please provide your Firebase project credentials in your environment variables to use the app.
-            </p>
-        </main>
-      </div>
-    )
-  }
-
-  if (!user || (isLoading && entries.length === 0)) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -145,6 +187,15 @@ export default function HomePage() {
     <div className="flex min-h-screen w-full flex-col">
       <Header user={user} />
       <main className="flex flex-1 flex-col gap-4 p-4 md:p-8 container">
+        {isMockMode && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Demo Mode</AlertTitle>
+            <AlertDescription>
+              Firebase is not configured. Any changes you make are for demonstration only and will not be saved.
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="flex items-center gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -160,19 +211,7 @@ export default function HomePage() {
           </Button>
         </div>
 
-        {isLoading ? (
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[...Array(8)].map((_, i) => (
-                <div key={i} className="flex flex-col space-y-3 p-4 border rounded-lg animate-pulse">
-                    <div className="space-y-2">
-                        <div className="h-4 bg-muted rounded w-3/4"></div>
-                        <div className="h-3 bg-muted rounded w-1/2"></div>
-                    </div>
-                    <div className="h-20 bg-muted rounded-md"></div>
-                </div>
-            ))}
-           </div>
-        ) : filteredEntries.length > 0 ? (
+        {filteredEntries.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in-50">
             {filteredEntries.map(entry => (
               <EntryCard

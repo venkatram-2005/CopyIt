@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -17,9 +18,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const isFirebaseConfigured = !!auth;
 
   const handleAuthAction = async (action: 'signIn' | 'signUp') => {
-    if (!auth) {
+    if (!isFirebaseConfigured) {
       toast({
         variant: "destructive",
         title: "Firebase Not Configured",
@@ -68,42 +70,52 @@ export default function LoginPage() {
              <Copyright className="h-8 w-8 mr-2 text-primary" />
              <CardTitle className="text-3xl font-bold">CopyIt</CardTitle>
           </div>
-          <CardDescription>Sign in to your account or create a new one</CardDescription>
+          <CardDescription>{isFirebaseConfigured ? "Sign in to your account or create a new one" : "Demo Mode"}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
+          {isFirebaseConfigured ? (
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="flex flex-col space-y-2 pt-2">
+                <Button onClick={() => handleAuthAction('signIn')} className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Signing In...' : 'Sign In'}
+                </Button>
+                <Button onClick={() => handleAuthAction('signUp')} variant="outline" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Signing Up...' : 'Sign Up'}
+                </Button>
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-              />
+          ) : (
+            <div className="text-center text-muted-foreground p-4 border rounded-md bg-muted/50">
+               <h3 className="font-semibold text-foreground">Firebase Not Configured</h3>
+               <p className="text-sm mt-2">
+                The login form is disabled. Please provide Firebase credentials to enable authentication.
+              </p>
+              <Button onClick={() => router.push('/')} className="mt-4">View App Demo</Button>
             </div>
-            <div className="flex flex-col space-y-2 pt-2">
-              <Button onClick={() => handleAuthAction('signIn')} className="w-full" disabled={isLoading}>
-                {isLoading ? 'Signing In...' : 'Sign In'}
-              </Button>
-              <Button onClick={() => handleAuthAction('signUp')} variant="outline" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Signing Up...' : 'Sign Up'}
-              </Button>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
