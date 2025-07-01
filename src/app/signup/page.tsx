@@ -46,6 +46,8 @@ export default function SignUpPage() {
         friendlyMessage = 'This email is already in use. Please sign in.';
       } else if (err.code === 'auth/weak-password') {
         friendlyMessage = 'The password is too weak. Please use at least 6 characters.';
+      } else if (err.code === 'auth/invalid-email') {
+        friendlyMessage = 'Please enter a valid email address.';
       }
 
       toast({
