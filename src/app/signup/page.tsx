@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
+import { createUserWithEmailAndPassword, AuthError } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { Copyright } from 'lucide-react';
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,34 +21,40 @@ export default function LoginPage() {
   const { toast } = useToast();
   const isFirebaseConfigured = !!auth;
 
-  const handleSignIn = async () => {
+  const handleSignUp = async () => {
     if (!isFirebaseConfigured) {
       toast({
         variant: "destructive",
         title: "Firebase Not Configured",
-        description: "Please provide Firebase configuration to sign in.",
+        description: "Please provide Firebase configuration to create an account.",
       });
       return;
     }
     
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/');
+      await createUserWithEmailAndPassword(auth, email, password);
+      toast({
+        title: "Account Created",
+        description: "You have successfully signed up. Redirecting to sign in...",
+      });
+      router.push('/login');
     } catch (e) {
       const err = e as AuthError;
       let friendlyMessage = "An error occurred. Please try again.";
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        friendlyMessage = 'Invalid email or password.';
+      if (err.code === 'auth/email-already-in-use') {
+        friendlyMessage = 'This email is already in use. Please sign in.';
+      } else if (err.code === 'auth/weak-password') {
+        friendlyMessage = 'The password is too weak. Please use at least 6 characters.';
       }
 
       toast({
         variant: "destructive",
-        title: "Authentication Error",
+        title: "Sign Up Error",
         description: friendlyMessage,
       });
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
 
@@ -60,7 +66,7 @@ export default function LoginPage() {
              <Copyright className="h-8 w-8 mr-2 text-primary" />
              <CardTitle className="text-3xl font-bold">CopyIt</CardTitle>
           </div>
-          <CardDescription>{isFirebaseConfigured ? "Sign in to your account" : "Demo Mode"}</CardDescription>
+          <CardDescription>{isFirebaseConfigured ? "Create a new account to get started" : "Demo Mode"}</CardDescription>
         </CardHeader>
         <CardContent>
           {isFirebaseConfigured ? (
@@ -88,15 +94,15 @@ export default function LoginPage() {
                   disabled={isLoading}
                 />
               </div>
-              <Button onClick={handleSignIn} className="w-full mt-2" disabled={isLoading}>
-                {isLoading ? 'Signing In...' : 'Sign In'}
+              <Button onClick={handleSignUp} className="w-full mt-2" disabled={isLoading}>
+                {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
             </div>
           ) : (
-            <div className="text-center text-muted-foreground p-4 border rounded-md bg-muted/50">
+             <div className="text-center text-muted-foreground p-4 border rounded-md bg-muted/50">
                <h3 className="font-semibold text-foreground">Firebase Not Configured</h3>
                <p className="text-sm mt-2">
-                The login form is disabled. Please provide Firebase credentials to enable authentication.
+                Sign up is disabled. Please provide Firebase credentials to enable authentication.
               </p>
               <Button onClick={() => router.push('/')} className="mt-4">View App Demo</Button>
             </div>
@@ -105,9 +111,9 @@ export default function LoginPage() {
         {isFirebaseConfigured && (
             <CardFooter className="flex justify-center">
                 <p className="text-sm text-muted-foreground">
-                    Don't have an account?{' '}
-                    <Link href="/signup" className="font-semibold text-primary hover:underline">
-                        Sign Up
+                    Already have an account?{' '}
+                    <Link href="/login" className="font-semibold text-primary hover:underline">
+                        Sign In
                     </Link>
                 </p>
             </CardFooter>
