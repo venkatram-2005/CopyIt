@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -36,7 +37,6 @@ export function Header({ user }: HeaderProps) {
     }
     try {
       await signOut(auth);
-      router.push("/login");
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out.",

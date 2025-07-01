@@ -72,9 +72,8 @@ export default function HomePage() {
     }
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
+      setUser(currentUser);
+      if (!currentUser) {
         router.push('/login');
       }
     });
