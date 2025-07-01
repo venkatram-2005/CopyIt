@@ -11,8 +11,9 @@ import { EntryCard } from '@/components/entry-card';
 import { EntryForm } from '@/components/entry-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Loader2, AlertTriangle, ClipboardList } from 'lucide-react';
+import { Plus, Search, Loader2, AlertTriangle, ClipboardList, ArrowUpDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import type { Entry } from '@/types';
 import { z } from 'zod';
@@ -53,6 +54,7 @@ export default function HomePage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest' | 'alphabetical'>('latest');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
 
@@ -92,13 +94,11 @@ export default function HomePage() {
         id: doc.id,
         ...doc.data(),
       })) as Entry[];
-      // Sort client-side to avoid needing a composite index immediately.
-      entriesData.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
       setEntries(entriesData);
       setIsLoading(false);
     }, (error) => {
       console.error("Error fetching entries: ", error);
-      toast({ variant: "destructive", title: "Error", description: "Could not fetch entries. You may need to create a Firestore index." });
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch entries." });
       setIsLoading(false);
     });
     return () => unsubscribe();
@@ -171,11 +171,32 @@ export default function HomePage() {
     }
   };
 
-  const filteredEntries = useMemo(() => {
-    return entries.filter(entry =>
+  const sortedAndFilteredEntries = useMemo(() => {
+    const sorted = [...entries].sort((a, b) => {
+      // Ensure createdAt exists and has toDate method before calling it
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+
+      switch (sortOrder) {
+        case 'oldest':
+          return dateA - dateB;
+        case 'alphabetical':
+          return a.title.localeCompare(b.title);
+        case 'latest':
+        default:
+          return dateB - dateA;
+      }
+    });
+
+    if (!searchTerm) {
+      return sorted;
+    }
+
+    return sorted.filter(entry =>
       entry.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [entries, searchTerm]);
+  }, [entries, searchTerm, sortOrder]);
+
 
   if (isLoading) {
     return (
@@ -199,26 +220,47 @@ export default function HomePage() {
           </Alert>
         )}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <h1 className="text-3xl font-bold tracking-tight text-primary">Your Clipboard</h1>
-            <div className="flex w-full sm:w-auto items-center gap-2">
-                <div className="relative flex-1 sm:flex-initial sm:w-64">
+            <h1 className="text-3xl font-bold tracking-tight text-primary self-start">Your Clipboard</h1>
+             <div className="flex w-full flex-col sm:flex-row sm:w-auto items-center gap-2">
+                <div className="relative w-full sm:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                     placeholder="Search by title..."
-                    className="pl-10"
+                    className="pl-10 h-9 w-full"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button onClick={() => { setEditingEntry(null); setIsDialogOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Add New
-                </Button>
+                <div className="flex w-full sm:w-auto gap-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="w-full flex-1">
+                                <ArrowUpDown className="mr-2 h-4 w-4" />
+                                Sort
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[--radix-dropdown-menu-trigger-width]">
+                            <DropdownMenuItem onClick={() => setSortOrder('latest')}>
+                                Date: Latest
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setSortOrder('oldest')}>
+                                Date: Oldest
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setSortOrder('alphabetical')}>
+                                Title: A-Z
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button size="sm" className="w-full flex-1" onClick={() => { setEditingEntry(null); setIsDialogOpen(true); }}>
+                        <Plus className="mr-2 h-4 w-4" /> Add New
+                    </Button>
+                </div>
             </div>
         </div>
 
-        {filteredEntries.length > 0 ? (
+        {sortedAndFilteredEntries.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in-50">
-            {filteredEntries.map(entry => (
+            {sortedAndFilteredEntries.map(entry => (
               <EntryCard
                 key={entry.id}
                 entry={entry}
