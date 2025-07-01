@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 type HeaderProps = {
-  user: User;
+  user: User | null;
 };
 
 export function Header({ user }: HeaderProps) {
@@ -26,6 +26,14 @@ export function Header({ user }: HeaderProps) {
   const { toast } = useToast();
 
   const handleLogout = async () => {
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Logout Error",
+        description: "Firebase is not configured.",
+      });
+      return;
+    }
     try {
       await signOut(auth);
       router.push("/login");
@@ -51,7 +59,7 @@ export function Header({ user }: HeaderProps) {
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
           <ThemeToggle />
-           <DropdownMenu>
+           {user && <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
@@ -74,7 +82,7 @@ export function Header({ user }: HeaderProps) {
                 <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu>}
         </div>
       </div>
     </header>

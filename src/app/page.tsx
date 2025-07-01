@@ -31,8 +31,13 @@ export default function HomePage() {
 
   const router = useRouter();
   const { toast } = useToast();
+  const isFirebaseConfigured = !!auth && !!db;
 
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setIsLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
@@ -41,10 +46,10 @@ export default function HomePage() {
       }
     });
     return () => unsubscribe();
-  }, [router]);
+  }, [isFirebaseConfigured, router]);
 
   useEffect(() => {
-    if (user) {
+    if (user && isFirebaseConfigured) {
       setIsLoading(true);
       const q = query(collection(db, 'entries'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -60,11 +65,13 @@ export default function HomePage() {
         setIsLoading(false);
       });
       return () => unsubscribe();
+    } else {
+        setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user, isFirebaseConfigured, toast]);
 
   const handleFormSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user) return;
+    if (!user || !isFirebaseConfigured) return;
 
     try {
       if (editingEntry) {
@@ -96,6 +103,7 @@ export default function HomePage() {
   };
 
   const handleDelete = async (entryId: string) => {
+    if (!isFirebaseConfigured) return;
     try {
       await deleteDoc(doc(db, 'entries', entryId));
       toast({ title: "Success", description: "Entry deleted successfully." });
@@ -110,6 +118,20 @@ export default function HomePage() {
       entry.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [entries, searchTerm]);
+
+  if (!isFirebaseConfigured) {
+    return (
+       <div className="flex min-h-screen w-full flex-col">
+        <Header user={null} />
+        <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">
+            <h3 className="text-2xl font-bold tracking-tight">Firebase Not Configured</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Please provide your Firebase project credentials in your environment variables to use the app.
+            </p>
+        </main>
+      </div>
+    )
+  }
 
   if (!user || (isLoading && entries.length === 0)) {
     return (

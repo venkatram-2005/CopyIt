@@ -11,8 +11,21 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+let app;
+let auth;
+let db;
+
+if (firebaseConfig.apiKey) {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else {
+  if (typeof window !== 'undefined') {
+    console.warn("Firebase configuration is missing or incomplete. Please check your environment variables. All Firebase features will be disabled.");
+  }
+  app = null;
+  auth = null;
+  db = null;
+}
 
 export { app, auth, db };

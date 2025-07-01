@@ -19,6 +19,15 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   const handleAuthAction = async (action: 'signIn' | 'signUp') => {
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Firebase Not Configured",
+        description: "Please provide Firebase configuration in your environment variables.",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     try {
       if (action === 'signUp') {
