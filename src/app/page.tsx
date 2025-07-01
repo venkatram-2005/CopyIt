@@ -54,7 +54,7 @@ export default function HomePage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest' | 'alphabetical'>('latest');
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest' | 'alphabetical'>('oldest');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
 
